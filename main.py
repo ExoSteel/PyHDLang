@@ -66,15 +66,24 @@ class Wire:
         self.isActivated = False
 
     def draw(self):
-        startX, startY = self.start.getCoords()
-        endX, endY = self.end.getCoords()
+        if type(self.start) in [Plug, InputPlug]:
+            startX, startY = self.start.getCoords()
+        else:
+            startX, startY = self.start[0], self.start[1]
 
+        if type(self.end) in [Plug, OutputPlug]:
+            endX, endY = self.end.getCoords()
+        else:
+            endX, endY = self.end[0], self.end[1]
         pg.draw.line(win, self.actColour if self.isActivated else self.deactColour, (startX, startY), (endX, endY), 4)
 
     def checkCurrent(self):
         if self.start.activated:
             self.isActivated = True
             self.end.activated = True
+
+    def checkCursor(self, currentCoords):
+        return False
 
 class Block:
     def __init__(self, colour, width, height, x, y):
@@ -129,8 +138,8 @@ class PlugButton(Block):
     def createPlug(self, plugs) -> Node:
         colour = self.colour
 
-        topPadding = HEIGHT * 0.05
-        spacing = (HEIGHT * 0.75) / (len(plugs) + 1)
+        topPadding = HEIGHT * 0.08
+        spacing = (HEIGHT * 0.8) / (len(plugs) + 1)
 
         if self.plugType == "input":
             for ind, plug in enumerate(plugs):
@@ -159,7 +168,7 @@ class Node(Block):
             plugY = self.y + self.height / (outputs+1) * o
             outPlug = Plug(BLACK, WIDTH * 0.01, self.x + self.width, plugY)
             self.outputs.append(outPlug)
-    
+
     def draw(self):
         super().draw()
         for i, inp in enumerate(self.inputs):
@@ -208,32 +217,65 @@ def drawObjects(buttons=[], inPlugs=[], outPlugs=[], nodes=[], lines=[]) -> void
     for line in lines:
         line.draw()
 
-def main():
-    clock = pg.time.Clock()
-    selected = None
-    prevSelected = None
-    isWiring = False
-    newWire = None
+def detectInput():
+    keyState = pg.key.get_pressed()
+    cursorClicks = pg.mouse.get_pressed(num_buttons=3) # Left, Center, Right
+    cursorCoords = pg.mouse.get_pos() # (x, y)
+    cursorCoordsRel = pg.mouse.get_rel() # (x, y)
 
-    nodes = []
+    return keyState, cursorClicks, cursorCoords, cursorCoordsRel
+
+def findSelected(cursorCoords, buttons=[], nodes=[], inPlugs=[], outPlugs=[], lines=[]):
+    objects = buttons + nodes + inPlugs + outPlugs + lines
+
+    for obj in objects:
+        if not obj.checkCursor(cursorCoords):
+            continue
+
+        if type(obj) == Node:
+            for plug in obj.inputs + obj.outputs:
+                if plug.checkCursor(cursorCoords):
+                    return plug
+
+        return obj
+    
+    return None
+
+def isValidWiring(selectedPlug, newWire):
+    if type(selectedPlug) == InputPlug:
+        newWire.start = selectedPlug
+    elif type(selectedPlug) == OutputPlug:
+        print("what", newWire.start, newWire.end)
+        newWire.end = selectedPlug
+    else:
+        if type(newWire.start) == tuple:
+            print("reis")
+            newWire.start = selectedPlug
+        else:
+            print('fale')
+            newWire.end = selectedPlug
+
+    return newWire
+
+def initialise():
+    nodes, inPlugs, outPlugs, buttons, lines = [], [], [], [], []
     node1 = Node(RED, WIDTH * 0.1, WIDTH * 0.1, WIDTH * 0.25, HEIGHT * 0.01, 2, 1)
     node2 = Node(BLUE, WIDTH * 0.1, WIDTH * 0.1, WIDTH * 0.12, HEIGHT * 0.1, 2, 2)
     nodes.insert(0, node1)
-    nodes.insert(0, node2)
-
-    inPlugs = []
+    nodes.insert(1, node2)
+    
     inputPlug = InputPlug(BLACK, WIDTH * 0.01, WIDTH * 0.1, HEIGHT * 0.33)
     inputPlug2 = InputPlug(BLACK, WIDTH * 0.01, WIDTH * 0.1, HEIGHT * 0.66)
     inPlugs.insert(0, inputPlug)
     inPlugs.insert(0, inputPlug2)
 
-    outPlugs = []
+    
     outputPlug = OutputPlug(BLACK, WIDTH * 0.01, WIDTH * 0.9, HEIGHT * 0.33)
     outputPlug2 = OutputPlug(BLACK, WIDTH * 0.01, WIDTH * 0.9, HEIGHT * 0.66)
     outPlugs.insert(0, outputPlug)
     outPlugs.insert(0, outputPlug2)
 
-    buttons = []
+    
     button1 = Button((50,10,20), WIDTH * 0.07, WIDTH * 0.07, WIDTH * 0.01, HEIGHT * 0.845, node1)
     button2 = Button((50,20,200), WIDTH * 0.07, WIDTH * 0.07, WIDTH * 0.09, HEIGHT * 0.845, node2)
     button3 = PlugButton((100,100,100), WIDTH * 0.05, WIDTH * 0.05, WIDTH * 0.02, HEIGHT * 0.01, "input")
@@ -243,108 +285,104 @@ def main():
     buttons.insert(0, button3)
     buttons.insert(0, button4)
 
-    lines = []
+    for node in nodes:
+        for inp in node.inputs:
+            inPlugs.append(inp)
+        for out in node.outputs:
+            outPlugs.append(out)
 
+    return nodes, inPlugs, outPlugs, buttons, lines
+
+def main():
+    clock = pg.time.Clock()
+    selected = None
+    prevSelected = None
+    isWiring = False
+    newWire = None
     running = True
+    nodes, inPlugs, outPlugs, buttons, lines = initialise()
+
     while running:
         drawBackground()
+        keyState, cursorClicks, cursorCoords, cursorCoordsRel = detectInput()
         
-        # block.move(block.x + 5, block.y + 5)
-        keyState = pg.key.get_pressed()
-        cursorCoords = pg.mouse.get_pos() # (x, y)
-        cursorClicks = pg.mouse.get_pressed(num_buttons=3) # Left, Center, Right
-        cursorCoordsRel = pg.mouse.get_rel()
-
         for event in pg.event.get():
-
             if event.type == QUIT:
                 running = False
+
             elif event.type == MOUSEBUTTONDOWN:
-                for inPlug in inPlugs:
-                    if not inPlug.checkCursor(cursorCoords):
-                        continue
-                    
-                    newWire = Wire(BLACK, GREEN, inPlug, cursorCoords)
+                # Find Selected
+                selected = findSelected(cursorCoords, buttons, nodes, inPlugs, outPlugs, lines)
+
+                # Actions
+                if type(selected) == Button:
+                    nodes.append(selected.createNode())
+                elif type(selected) == PlugButton:
+                    selected.createPlug(inPlugs if selected.plugType == "input" else outPlugs)
+                elif type(selected) == InputPlug:
+                    newWire = Wire(BLACK, GREEN, selected, cursorCoords)
+                    lines.append(newWire)
+                    isWiring = True
+                elif type(selected) == OutputPlug:
+                    newWire = Wire(BLACK, GREEN, cursorCoords, selected)
+                    lines.append(newWire)
+                    isWiring = True
+                elif type(selected) == Plug and selected in inPlugs:
+                    newWire = Wire(BLACK, GREEN, cursorCoords, selected)
+                    lines.append(newWire)
+                    isWiring = True
+                elif type(selected) == Plug and selected in outPlugs:
+                    newWire = Wire(BLACK, GREEN, selected, cursorCoords)
+                    lines.append(newWire)
                     isWiring = True
 
-                for button in buttons:
-                    if not button.checkCursor(cursorCoords):
-                        continue
-
-                    if isinstance(button, Button):
-                        print(button, "clicked")
-                        nodes.append(button.createNode())
-                    elif isinstance(button, PlugButton) and button.plugType == "input":
-                        print(button, "inplug button clicked")
-                        inPlugs = button.createPlug(inPlugs)
-                    elif isinstance(button, PlugButton) and button.plugType == "output":
-                        print(button, "outplug button clicked")
-                        outPlugs = button.createPlug(outPlugs)
-
             elif event.type == MOUSEBUTTONUP:
-                print("click release")
+                prevSelected = selected
+                
                 if isWiring:
-                    for node in nodes:
-                        for inp in node.inputs:
-                            if not inp.checkCursor(cursorCoords):
-                                continue
-                                
-                            if isinstance(newWire.start, Plug): # Forward-wise connection
-                                newWire.end = inp
-                            elif isinstance(newWire.end, Plug): # Backward-wise connection
-                                newWire.start = inp
-                        
-                        for out in node.outputs:
-                            if not out.checkCursor(cursorCoords):
-                                continue
-                                
-                            if isinstance(newWire.start, Plug): # Forward-wise connection
-                                newWire.end = out
-                            elif isinstance(newWire.end, Plug): # Backward-wise connection
-                                newWire.start = out
+                    selected = findSelected(cursorCoords, inPlugs=inPlugs, outPlugs=outPlugs)
+
+                    if selected and selected != newWire.start and selected != newWire.end:
+                        print("cursed")
+                        newWire = isValidWiring(selected, newWire)
+
+                        lines[-1] = newWire
+                        newWire = None
+                    else:
+                        lines.pop(-1)
 
 
-                    for inPlug in inPlugs:
-                        if not inPlug.checkCursor(cursorCoords):
-                            continue
-
-                        if isinstance(inPlug, Plug):
-                            pass
-                    
-                    lines.append(newWire)
-                    newWire = None
                     isWiring = False
                     print(lines)
-
+        
+                selected = None    
 
         if keyState[pg.K_ESCAPE]:
             print("exit")
             running = False
-        if keyState[pg.K_w]:
-            print("gay", cursorCoords, cursorClicks, cursorCoordRel)
-        
+        if keyState[pg.K_w]: #debug
+            print("gay", cursorCoords, cursorClicks, cursorCoordsRel)
+
+        # Moving nodes
+        if type(selected) == Node:
+            selected.setOrigin(cursorCoordsRel[0] + selected.x, cursorCoordsRel[1] + selected.y)
+
+        # Check if hovering over plugs
+        for plug in inPlugs + outPlugs:
+            if plug.checkCursor(cursorCoords):
+                plug.colour = GREEN
+                break
+            else:
+                plug.colour = BLACK
+
+        # Check lines
+        for line in lines:
+            if isinstance(line.start, Plug) and type(line.end) == tuple:
+                line.end = cursorCoords
+            elif isinstance(line.end, Plug) and type(line.start) == tuple:
+                line.start = cursorCoords
+
         drawObjects(buttons=buttons, inPlugs=inPlugs, outPlugs=outPlugs, nodes=nodes, lines=lines)
-
-        # Moving nodes if needed
-        for node in nodes:
-            node.checkCursorOnPlug(cursorCoords)
-            if node.checkCursor(cursorCoords) and cursorClicks[0]:
-                # print("Moving:", node)
-                # print(cursorCoordsRel)
-                node.setOrigin(cursorCoordsRel[0] + node.x, cursorCoordsRel[1] + node.y)
-
-        # Check input/output plugs
-        for inPlug in inPlugs:
-            if inPlug.checkCursor(cursorCoords):
-                inPlug.colour = GREEN
-            else:
-                inPlug.colour = BLACK
-        
-        for outPlug in outPlugs:
-            if outPlug.checkCursor(cursorCoords):
-                outPlug.colour = GREEN
-            else:
-                outPlug.colour = BLACK
 
         clock.tick(480)
         pg.display.update()
