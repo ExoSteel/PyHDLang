@@ -2,6 +2,7 @@ import pygame as pg
 from pygame.locals import *
 import os, csv
 from modules.finder import jsonReader, getLogicDetails
+from modules.constants import *
 from fonts.fontManager import h1, h2, h3, p
 
 pg.init()
@@ -12,16 +13,6 @@ info = pg.display.Info()
 WIDTH = info.current_w / 2
 HEIGHT = info.current_h / 2
 win = pg.display.set_mode((WIDTH,HEIGHT))
-
-RED = (255,50,50)
-GREEN = (50,255,50)
-BLUE = (50,50,255)
-WHITE = (255,255,255)
-BLACK = (0,0,0)
-
-BACKGROUND = (25,25,25)
-BACKGROUND2 = (12,12,12)
-BACKGROUND3 = (50,50,50)
 
 class Plug:
     def __init__(self, colour, radius, x=None, y=None) -> None:
@@ -39,6 +30,8 @@ class Plug:
         # (x-x0)^2 + (y-y0)^2 = r^2
         if (cursorX - self.x)**2 + (cursorY - self.y)**2 <= self.radius ** 2:
             return True
+        
+        return False
 
     def draw(self) -> None:
         pg.draw.circle(win, self.colour, (self.x, self.y), self.radius)
@@ -46,6 +39,8 @@ class Plug:
     def checkCurrent(self):
         if self.isActivated:
             self.colour = RED
+        else:
+            self.colour = BLACK
 
 class InputPlug(Plug):
     def __init__(self, colour, radius, x=None, y=None):
@@ -59,11 +54,15 @@ class InputPlug(Plug):
         pg.draw.circle(win, self.colour, (self.x, self.y), self.radius)
         pg.draw.circle(win, self.switchColour, (self.switchX, self.switchY), self.switchRadius)
     
-    def checkCursorOnSwitch(self, cursorCoords):
+    def checkCursor(self, cursorCoords):
         cursorX, cursorY = cursorCoords
         # (x-x0)^2 + (y-y0)^2 = r^2
-        if (cursorX - self.switchX)**2 + (cursorY - self.switchY)**2 <= self.switchRadius ** 2:
+        if (cursorX - self.x)**2 + (cursorY - self.y)**2 <= self.radius ** 2:
             return True
+        elif (cursorX - self.switchX)**2 + (cursorY - self.switchY)**2 <= self.switchRadius ** 2:
+            return 2
+        
+        return False
 
 class OutputPlug(Plug):
     def __init__(self, colour, radius, x=None, y=None):
@@ -77,9 +76,8 @@ class OutputPlug(Plug):
         pg.draw.circle(win, self.colour, (self.lampX, self.lampY), self.lampRadius)
 
 class Wire:
-    def __init__(self, deactColour, actColour, start:Plug | tuple[int,int], end:Plug | tuple[int,int]):
-        self.deactColour = deactColour
-        self.actColour = actColour
+    def __init__(self, colour, start:Plug | tuple[int,int], end:Plug | tuple[int,int]):
+        self.colour = colour
         self.start = start
         self.end = end
         self.isActivated = False
@@ -94,14 +92,22 @@ class Wire:
             endX, endY = self.end.getCoords()
         else:
             endX, endY = self.end[0], self.end[1]
-        pg.draw.line(win, self.actColour if self.isActivated else self.deactColour, (startX, startY), (endX, endY), 4)
+        pg.draw.line(win, self.colour, (startX, startY), (endX, endY), 4)
 
     def checkCurrent(self):
-        if self.start.activated:
+        if self.start.isActivated:
+            self.colour = RED
             self.isActivated = True
-            self.end.activated = True
+            self.end.isActivated = True
+            return True
+
+        self.colour = BLACK
+        self.isActivated = False
+        self.end.isActivated = False
+        return False
 
     def checkCursor(self, currentCoords):
+        # Need math equation WIP
         return False
 
 class Block:
@@ -201,6 +207,7 @@ class Node(Block):
         
         self.name = name
         self.truthTable = truthTable
+        print(self.truthTable)
 
     def draw(self):
         super().draw()
@@ -227,9 +234,37 @@ class Node(Block):
             else:
                 out.colour = BLACK
 
-    def readInputs(self):
+    def calcOutput(self):
+        inputs = []
+        outputs = []
+        for proposition in self.truthTable:
+            binaryInp = ""
+            binaryOut = ""
+
+            for key, value in proposition.items():
+                if key in ALPHABET:
+                    binaryInp += value
+                if "OUT" in key:
+                    binaryOut += value
+            
+            inputs.append(binaryInp)
+            outputs.append(binaryOut)
+
+        # print(inputs)
+        # print(outputs)
+            
+        binaryInput = ""
         for i, inp in enumerate(self.inputs):
-            pass
+            binaryInput += str(int(inp.isActivated))
+        
+        result = False
+        binaryOutput = ""
+        if binaryInput in inputs:
+            index = inputs.index(binaryInput)
+            binaryOutput = outputs[index]
+
+        for i, out in enumerate(self.outputs):
+            out.isActivated = True if binaryOutput[i] == "1" else False
 
 def drawBackground():
     win.fill(BACKGROUND)
@@ -367,7 +402,7 @@ def main():
             elif event.type == MOUSEBUTTONDOWN:
                 # Find Selected
                 selected = findSelected(cursorCoords, buttons, nodes, inPlugs, outPlugs, lines)
-
+                print(selected)
                 # Actions (Left Click)
                 if event.button == 1:
                     if type(selected) == Button:
@@ -380,19 +415,23 @@ def main():
                     elif type(selected) == PlugButton:
                         selected.createPlug(inPlugs if selected.plugType == "input" else outPlugs)
                     elif type(selected) == InputPlug:
-                        newWire = Wire(BLACK, GREEN, selected, cursorCoords)
-                        lines.append(newWire)
-                        isWiring = True
+                        if selected.checkCursor(cursorCoords) == 2:
+                            selected.isActivated = False if selected.isActivated else True
+                            print("Activated:", selected.isActivated)
+                        else:
+                            newWire = Wire(BLACK, selected, cursorCoords)
+                            lines.append(newWire)
+                            isWiring = True
                     elif type(selected) == OutputPlug:
-                        newWire = Wire(BLACK, GREEN, cursorCoords, selected)
+                        newWire = Wire(BLACK, cursorCoords, selected)
                         lines.append(newWire)
                         isWiring = True
                     elif type(selected) == Plug and selected in inPlugs:
-                        newWire = Wire(BLACK, GREEN, cursorCoords, selected)
+                        newWire = Wire(BLACK, cursorCoords, selected)
                         lines.append(newWire)
                         isWiring = True
                     elif type(selected) == Plug and selected in outPlugs:
-                        newWire = Wire(BLACK, GREEN, selected, cursorCoords)
+                        newWire = Wire(BLACK, selected, cursorCoords)
                         lines.append(newWire)
                         isWiring = True
                 # Actions (Middle Click)
@@ -439,31 +478,34 @@ def main():
 
         # Check if hovering over plugs or activated
         for plug in inPlugs + outPlugs:
-            if plug.checkCurrent():
-                plug.colour = RED
-            elif type(plug) == InputPlug and plug.checkCursorOnSwitch(cursorCoords):
-                plug.switchColour = GREEN
-                break
-            elif plug.checkCursor(cursorCoords):
-                plug.colour = GREEN
-                break
-            else:
-                plug.colour = BLACK
+            if not plug.checkCursor(cursorCoords):
                 if type(plug) == InputPlug:
                     plug.switchColour = BLACK
+                
+                plug.colour = RED if plug.isActivated else BLACK
+            if plug.checkCursor(cursorCoords):
+                if plug.checkCursor(cursorCoords) == 2:
+                    plug.switchColour = GREEN
+                plug.colour = GREEN
+                break
 
         # Check lines
         for line in lines:
-            if isinstance(line.start, Plug) and type(line.end) == tuple:
+            # print(line.start, line.end)
+            if type(line.start) in [Plug, InputPlug] and type(line.end) == tuple:
                 line.end = cursorCoords
-            elif isinstance(line.end, Plug) and type(line.start) == tuple:
+            elif type(line.end) in [Plug, InputPlug] and type(line.start) == tuple:
                 line.start = cursorCoords
+            else:
+                line.checkCurrent()
+
+        # Calculate node logic
+        for node in nodes:
+            node.calcOutput()
 
         drawObjects(buttons=buttons, inPlugs=inPlugs, outPlugs=outPlugs, nodes=nodes, lines=lines)
         clock.tick(500)
         pg.display.update()
-
-
     
     pg.quit()
 
