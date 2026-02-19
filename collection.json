@@ -1,0 +1,39 @@
+{
+    "logics": [
+        {"name": "AND",
+         "colour": "0,125,0",
+         "width": 0.10,
+         "height": 0.08,
+         "inputs": 2,
+         "outputs": 1,
+         "src": "AND.csv"
+        },
+
+        {"name": "NOT",
+         "colour": "125,0,0",
+         "width": 0.10,
+         "height": 0.08,
+         "inputs": 1,
+         "outputs": 1,
+         "src": "NOT.csv"
+        },
+
+        {"name": "OR",
+         "colour": "0,0,125",
+         "width": 0.10,
+         "height": 0.08,
+         "inputs": 2,
+         "outputs": 1,
+         "src": "OR.csv"
+        },
+
+        {"name": "NAND",
+         "colour": "125,0,125",
+         "width": 0.10,
+         "height": 0.08,
+         "inputs": 2,
+         "outputs": 1,
+         "src": "NAND.csv"
+        }
+    ]
+}
