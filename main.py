@@ -10,10 +10,11 @@ pg.init()
 pg.display.set_caption("Pygame Hardware Description Language")
 
 def drawBackground() -> None:
+    # print(WIDTH, HEIGHT)
     win.fill(BACKGROUND)
-    pg.draw.rect(win, BACKGROUND2, ((0, HEIGHT * 0.82), (WIDTH, HEIGHT)))
-    pg.draw.rect(win, BACKGROUND3, ((0,0), (WIDTH * 0.1, HEIGHT * 0.82)))
-    pg.draw.rect(win, BACKGROUND3, ((WIDTH * 0.9,0), (WIDTH, HEIGHT * 0.82)))
+    pg.draw.rect(win, BACKGROUND2, ((0, worldHeight - worldHeight*0.18), (worldWidth, worldHeight)))
+    pg.draw.rect(win, BACKGROUND3, ((0,0), (worldWidth * 0.1, worldHeight - worldHeight*0.18)))
+    pg.draw.rect(win, BACKGROUND3, ((worldWidth * 0.9,0), (worldWidth, worldHeight - worldHeight * 0.18)))
 
 def calcBoxCenter(x:float=0.0, y:float=0.0, width:float=0.0, height:float=0.0, textX:float=0.0, textY:float=0.0) -> tuple[float, float]:
     centerX, centerY = x+(width//2), y+(height//2)
@@ -115,21 +116,21 @@ def initialise(data=list[any, ...]) -> tuple[list,list,list,list,list]:
     # nodes.insert(0, node1)
     # nodes.insert(1, node2)
     
-    inputPlug = InputPlug(BLACK, WIDTH * 0.01, WIDTH * 0.1, HEIGHT * 0.33)
-    inputPlug2 = InputPlug(BLACK, WIDTH * 0.01, WIDTH * 0.1, HEIGHT * 0.66)
+    inputPlug = InputPlug(BLACK, worldWidth * 0.01, worldWidth * 0.1, worldHeight * 0.33)
+    inputPlug2 = InputPlug(BLACK, worldWidth * 0.01, worldWidth * 0.1, worldHeight * 0.66)
     inPlugs.append(inputPlug)
     inPlugs.append(inputPlug2)
     
-    outputPlug = OutputPlug(BLACK, WIDTH * 0.01, WIDTH * 0.9, HEIGHT * 0.33)
-    outputPlug2 = OutputPlug(BLACK, WIDTH * 0.01, WIDTH * 0.9, HEIGHT * 0.66)
+    outputPlug = OutputPlug(BLACK, worldWidth * 0.01, worldWidth * 0.9, worldHeight * 0.33)
+    outputPlug2 = OutputPlug(BLACK, worldWidth * 0.01, worldWidth * 0.9, worldHeight * 0.66)
     outPlugs.append(outputPlug)
 
     for ind, logic in enumerate(data):
         colour = tuple([int(i) for i in logic[1].split(",")])
-        button = Button(colour=colour, width=(WIDTH * 0.06), height=(WIDTH * 0.04), x=(WIDTH * 0.01 + WIDTH * 0.07 * (ind)), y=(HEIGHT * 0.845), nodeData=logic)
+        button = Button(colour=colour, width=(worldWidth * 0.06), height=(worldWidth * 0.04), x=(worldWidth * 0.01 + worldWidth * 0.07 * (ind)), y=(worldHeight * 0.845), nodeData=logic)
         buttons.insert(0, button)
-    buttonInput = PlugButton((100,100,100), WIDTH * 0.05, WIDTH * 0.05, WIDTH * 0.02, HEIGHT * 0.01, "input")
-    buttonOutput = PlugButton((100,100,100), WIDTH * 0.05, WIDTH * 0.05, WIDTH * 0.92, HEIGHT * 0.01, "output")
+    buttonInput = PlugButton((100,100,100), worldWidth * 0.05, worldWidth * 0.05, worldWidth * 0.02, worldHeight * 0.01, "input")
+    buttonOutput = PlugButton((100,100,100), worldWidth * 0.05, worldWidth * 0.05, worldWidth * 0.92, worldHeight * 0.01, "output")
     
     buttons.insert(0, buttonInput)
     buttons.insert(0, buttonOutput)
@@ -142,7 +143,34 @@ def initialise(data=list[any, ...]) -> tuple[list,list,list,list,list]:
 
     return nodes, inPlugs, outPlugs, buttons, lines
 
+def resizeGUI(info:any, objects:list[any, ...]) -> None:
+    global worldWidth, worldHeight
+    percentDiffWidth = info.current_w / worldWidth
+    percentDiffHeight = info.current_h / worldHeight
+    worldWidth, worldHeight = info.current_w, info.current_h
+    # print(info)
+
+    for obj in objects:
+        obj.x *= percentDiffWidth
+        obj.y *= percentDiffHeight
+        if type(obj) == InputPlug:
+            obj.radius *= ((percentDiffWidth + percentDiffHeight) / 2)
+            obj.switchRadius *= ((percentDiffWidth + percentDiffHeight) / 2)
+            obj.switchX *= percentDiffWidth
+            obj.switchY *= percentDiffHeight
+        elif type(obj) == OutputPlug:
+            obj.radius *= ((percentDiffWidth + percentDiffHeight) / 2)
+            obj.lampRadius *= ((percentDiffWidth + percentDiffHeight) / 2)
+            obj.lampX *= percentDiffWidth
+            obj.lampY *= percentDiffHeight
+        elif type(obj) in [Plug, InputPlug, OutputPlug]:
+            obj.radius *= ((percentDiffWidth + percentDiffHeight) / 2)
+        else:
+            obj.width *= percentDiffWidth
+            obj.height *= percentDiffHeight
+
 def main() -> None:
+    global worldWidth, worldHeight
     clock = pg.time.Clock()
     selected = None
     prevSelected = None
@@ -158,6 +186,12 @@ def main() -> None:
     nodes, inPlugs, outPlugs, buttons, lines = initialise(data)
 
     while running:
+        info = pg.display.Info()
+        
+        # print(info, info.current_w)
+        if info.current_w != worldWidth or info.current_h != worldHeight:
+            objects = nodes + inPlugs + outPlugs + buttons
+            resizeGUI(info, objects)
         drawBackground()
         keyState, cursorClicks, cursorCoords, cursorCoordsRel = detectInput()
         
@@ -211,11 +245,8 @@ def main() -> None:
                         # Delete an input/output plug WIP
                         pass
                     elif type(selected) == Node:
-                        # Delete selected node WIP
                         nodeIndex = nodes.index(selected)
-                        print(lines)
                         deleteConnections(lines, inPlugs, outPlugs, selected)
-                        print(lines)
                         nodes.pop(nodes.index(selected))
 
             elif event.type == MOUSEBUTTONUP:

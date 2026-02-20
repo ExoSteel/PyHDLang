@@ -131,14 +131,14 @@ class Button(Block):
         super().__init__(colour, width, height, x, y)
         
         self.name = nodeData[0]
-        self.nodeWidth = WIDTH * float(nodeData[2])
-        self.nodeHeight = WIDTH * float(nodeData[3])
+        self.nodeWidth = worldWidth * float(nodeData[2])
+        self.nodeHeight = worldWidth * float(nodeData[3])
         self.inputs = nodeData[4]
         self.outputs = nodeData[5]
         self.truthTable = nodeData[6]
 
     def createNode(self) -> "Node":
-        newNode = Node(self.colour, self.nodeWidth, self.nodeHeight, WIDTH * 0.1, HEIGHT * 0.1, self.inputs, self.outputs, self.name, self.truthTable)
+        newNode = Node(self.colour, self.nodeWidth, self.nodeHeight, worldWidth * 0.1, worldHeight * 0.1, self.inputs, self.outputs, self.name, self.truthTable)
         return newNode
 
 class PlugButton(Block):
@@ -148,29 +148,29 @@ class PlugButton(Block):
     
     def createPlug(self, plugs:list[any, ...]=[]) -> "Node":
         colour = self.colour
-        topPadding = HEIGHT * 0.08
+        topPadding = worldHeight * 0.08
         
         if self.plugType == "input":
             inPlugs = []
             for plug in plugs:
                 inPlugs.append(plug) if type(plug) == InputPlug else 0
-            spacing = (HEIGHT * 0.7) / (len(inPlugs) + 1)
+            spacing = (worldHeight * 0.7) / (len(inPlugs) + 1)
 
             for ind, plug in enumerate(inPlugs):
                 plug.y = topPadding + (spacing * (ind+2))
                 plug.switchY = plug.y
-            newPlug = InputPlug(colour, WIDTH * 0.01, WIDTH * 0.1, topPadding + spacing)
+            newPlug = InputPlug(colour, worldWidth * 0.01, worldWidth * 0.1, topPadding + spacing)
 
         elif self.plugType == "output":
             outPlugs = []
             for plug in plugs:
                 outPlugs.append(plug) if type(plug) == OutputPlug else 0
-            spacing = (HEIGHT * 0.7) / (len(outPlugs) + 1)
+            spacing = (worldHeight * 0.7) / (len(outPlugs) + 1)
 
             for ind, plug in enumerate(outPlugs):
                 plug.y = topPadding + (spacing * (ind+2))
                 plug.lampY = plug.y
-            newPlug = OutputPlug(colour, WIDTH * 0.01, WIDTH * 0.9, topPadding + spacing)
+            newPlug = OutputPlug(colour, worldWidth * 0.01, worldWidth * 0.9, topPadding + spacing)
 
         plugs.insert(0, newPlug)
         return plugs
@@ -182,18 +182,18 @@ class Node(Block):
         self.inputs = []
         for i in range(1, inputs+1):
             plugY = self.y + self.height / (inputs+1) * i
-            inPlug = Plug(BLACK, WIDTH * 0.01, self.x, plugY)
+            inPlug = Plug(BLACK, worldWidth * 0.01, self.x, plugY)
             self.inputs.append(inPlug)
 
         self.outputs = []
         for o in range(1, outputs+1):
             plugY = self.y + self.height / (outputs+1) * o
-            outPlug = Plug(BLACK, WIDTH * 0.01, self.x + self.width, plugY)
+            outPlug = Plug(BLACK, worldWidth * 0.01, self.x + self.width, plugY)
             self.outputs.append(outPlug)
         
         self.name = name
         self.truthTable = truthTable
-        print(self.truthTable)
+        # print(self.truthTable)
 
     def draw(self) -> None:
         super().draw()

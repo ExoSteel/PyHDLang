@@ -1,4 +1,4 @@
-# PyHDLang: Simple Logic Gate Visualiser by Pygame
+# PyHDLang: Simple Logic Gate Simulator
 
 ![Screenshot](images/first.png)
 
@@ -22,7 +22,6 @@ pip install virtualenv
 ```
 
 Setting up virtual environment:
-
 
 ```
 python -m venv .venv
