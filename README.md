@@ -1,6 +1,6 @@
 # PyHDLang: Simple Logic Gate Visualiser by Pygame
 
-![Screenshot]("images/first.png")
+![Screenshot](images/first.png)
 
 Inspired by Sebastian Lague, just programmed in Pygame instead of Unity.
 
