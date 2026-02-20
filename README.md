@@ -1,5 +1,7 @@
 # PyHDLang: Simple Logic Gate Visualiser by Pygame
 
+![Screenshot]("images/first.png")
+
 Inspired by Sebastian Lague, just programmed in Pygame instead of Unity.
 
 Currently lacking:
@@ -29,3 +31,9 @@ pip install -r requirements.txt
 ```
 
 Once done, exit the virtual environment using *deactivate*
+
+# Current Bugs
+- Input plug to Input plug (or Output plug to Output plug) breaks wiring system
+- Activating an Output plug, then deleting the node connected to the Output plug will not deactivate the Output plug
+- There is no detection system for multiple nodes plugging into a single Output plug (Conflicts)
+- Can't delete wires; Have to delete the nodes connected to it instead

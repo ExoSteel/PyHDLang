@@ -1,3 +1,11 @@
+import pygame as pg
+
+info = pg.display.Info()
+WIDTH = info.current_w / 2
+HEIGHT = info.current_h / 2
+
+win = pg.display.set_mode((WIDTH,HEIGHT))
+
 ALPHABET = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
 
 RED = (200,50,50)
