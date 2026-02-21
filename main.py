@@ -5,6 +5,7 @@ from fonts.fontManager import h1, h2, h3, p
 from modules.objects import *
 from modules.finder import jsonReader, getLogicDetails
 from modules.constants import *
+from modules.menus import *
 
 pg.init()
 pg.display.set_caption("Pygame Hardware Description Language")
@@ -16,21 +17,9 @@ def drawBackground() -> None:
     pg.draw.rect(win, BACKGROUND3, ((0,0), (worldWidth * 0.1, worldHeight - worldHeight*0.18)))
     pg.draw.rect(win, BACKGROUND3, ((worldWidth * 0.9,0), (worldWidth, worldHeight - worldHeight * 0.18)))
 
-def calcBoxCenter(x:float=0.0, y:float=0.0, width:float=0.0, height:float=0.0, textX:float=0.0, textY:float=0.0) -> tuple[float, float]:
-    centerX, centerY = x+(width//2), y+(height//2)
-    return centerX-textX/2, centerY-textY/2
-
-def drawObjects(buttons:list[any, ...]=[], inPlugs:list[any, ...]=[], outPlugs:list[any, ...]=[], nodes:list[any, ...]=[], lines:list[any, ...]=[]) -> None:
+def drawObjects(buttons:list[any, ...]=[], inPlugs:list[any, ...]=[], outPlugs:list[any, ...]=[], nodes:list[any, ...]=[], lines:list[any, ...]=[], onMenu:any=None, menuCoords:tuple[int,int]=(0,0)) -> None:
     for button in buttons:
         button.draw()
-        if type(button) == PlugButton:
-            text = p.render("+", True, (255, 255, 255))
-        elif type(button) == Button:
-            text = p.render(button.name, True, (255, 255, 255))
-
-        textX, textY = text.get_size()
-        centerX, centerY = calcBoxCenter(button.x, button.y, button.width, button.height, textX, textY)
-        win.blit(text, (centerX, centerY))
         
     for inPlug in inPlugs:
         inPlug.draw()
@@ -40,14 +29,12 @@ def drawObjects(buttons:list[any, ...]=[], inPlugs:list[any, ...]=[], outPlugs:l
 
     for node in nodes:
         node.draw()
-        text = p.render(node.name, True, (255, 255, 255))
-        textX, textY = text.get_size()
-        centerX, centerY = calcBoxCenter(node.x, node.y, node.width, node.height, textX, textY)
-        
-        win.blit(text, (centerX, centerY))
     
     for line in lines:
         line.draw()
+    
+    if onMenu:
+        onMenu.draw(menuCoords[0], menuCoords[1])
 
 def detectInput() -> tuple[tuple[any, ...],tuple[any, ...],tuple[any, ...],tuple[any, ...]]:
     keyState = pg.key.get_pressed()
@@ -57,8 +44,8 @@ def detectInput() -> tuple[tuple[any, ...],tuple[any, ...],tuple[any, ...],tuple
 
     return keyState, cursorClicks, cursorCoords, cursorCoordsRel
 
-def findSelected(cursorCoords:tuple[int, int]=(0,0), buttons:list[any, ...]=[], nodes:list[any, ...]=[], inPlugs:list[any, ...]=[], outPlugs:list[any, ...]=[], lines:list[any, ...]=[]) -> any:
-    objects = buttons + nodes + inPlugs + outPlugs + lines
+def findSelected(cursorCoords:tuple[int, int]=(0,0), buttons:list[any, ...]=[], nodes:list[any, ...]=[], inPlugs:list[any, ...]=[], outPlugs:list[any, ...]=[], lines:list[any, ...]=[], menus:list[any, ...]=[]) -> any:
+    objects = buttons + nodes + inPlugs + outPlugs + lines + menus
 
     for obj in objects:
         if not obj.checkCursor(cursorCoords):
@@ -110,7 +97,7 @@ def deleteConnections(lines:list[any, ...]=[], inPlugs:list[any, ...]=[], outPlu
     [outPlugs.pop(outPlugs.index(i)) for i in toDelete]
 
 def initialise(data=list[any, ...]) -> tuple[list,list,list,list,list]:
-    nodes, inPlugs, outPlugs, buttons, lines = [], [], [], [], []
+    nodes, inPlugs, outPlugs, buttons, lines, menus = [], [], [], [], [], []
     # node1 = Node(RED, WIDTH * 0.1, WIDTH * 0.075, WIDTH * 0.25, HEIGHT * 0.01, 2, 1, "AND", "")
     # node2 = Node(BLUE, WIDTH * 0.1, WIDTH * 0.075, WIDTH * 0.12, HEIGHT * 0.1, 1, 1, "OR", "")
     # nodes.insert(0, node1)
@@ -125,15 +112,20 @@ def initialise(data=list[any, ...]) -> tuple[list,list,list,list,list]:
     outputPlug2 = OutputPlug(BLACK, worldWidth * 0.01, worldWidth * 0.9, worldHeight * 0.66)
     outPlugs.append(outputPlug)
 
+    saveMenu = SaveMenu("Save", WHITE, worldWidth * 0.4, worldHeight * 0.7)
+    menus.insert(0, saveMenu)
+
     for ind, logic in enumerate(data):
         colour = tuple([int(i) for i in logic[1].split(",")])
-        button = Button(colour=colour, width=(worldWidth * 0.06), height=(worldWidth * 0.04), x=(worldWidth * 0.01 + worldWidth * 0.07 * (ind)), y=(worldHeight * 0.845), nodeData=logic)
+        button = NodeButton(text=logic[0], colour=colour, width=(worldWidth * 0.06), height=(worldWidth * 0.04), x=(worldWidth * 0.01 + worldWidth * 0.07 * (ind)), y=(worldHeight * 0.845), data=logic)
         buttons.insert(0, button)
-    buttonInput = PlugButton((100,100,100), worldWidth * 0.05, worldWidth * 0.05, worldWidth * 0.02, worldHeight * 0.01, "input")
-    buttonOutput = PlugButton((100,100,100), worldWidth * 0.05, worldWidth * 0.05, worldWidth * 0.92, worldHeight * 0.01, "output")
+    buttonInput = PlugButton("+", (100,100,100), worldWidth * 0.05, worldWidth * 0.05, worldWidth * 0.02, worldHeight * 0.01, "input")
+    buttonOutput = PlugButton("+", (100,100,100), worldWidth * 0.05, worldWidth * 0.05, worldWidth * 0.92, worldHeight * 0.01, "output")
+    buttonSave = SaveButton("Save", RED, worldWidth * 0.10, worldHeight * 0.10, worldWidth * 0.85, worldHeight * 0.85, saveMenu)
     
     buttons.insert(0, buttonInput)
     buttons.insert(0, buttonOutput)
+    buttons.insert(0, buttonSave)
 
     for node in nodes:
         for inp in node.inputs:
@@ -141,7 +133,7 @@ def initialise(data=list[any, ...]) -> tuple[list,list,list,list,list]:
         for out in node.outputs:
             outPlugs.append(out)
 
-    return nodes, inPlugs, outPlugs, buttons, lines
+    return nodes, inPlugs, outPlugs, buttons, lines, menus
 
 def resizeGUI(info:any, objects:list[any, ...]) -> None:
     global worldWidth, worldHeight
@@ -177,13 +169,15 @@ def main() -> None:
     isWiring = False
     newWire = None
     running = True
+    onMenu = None
+    menuCoords = (0,0)
 
     data = []
     collectionJSON = jsonReader("./collection.json")
     for logic in collectionJSON["logics"]:
         data.append(getLogicDetails(logic))
         
-    nodes, inPlugs, outPlugs, buttons, lines = initialise(data)
+    nodes, inPlugs, outPlugs, buttons, lines, menus = initialise(data)
 
     while running:
         info = pg.display.Info()
@@ -201,12 +195,20 @@ def main() -> None:
 
             elif event.type == MOUSEBUTTONDOWN:
                 # Find Selected
-                selected = findSelected(cursorCoords, buttons, nodes, inPlugs, outPlugs, lines)
+                selected = findSelected(cursorCoords, buttons, nodes, inPlugs, outPlugs, lines, menus)
                 # print(selected)
 
                 # Actions (Left Click)
                 if event.button == 1:
-                    if type(selected) == Button:
+                    if type(selected) == SaveMenu:
+                        onMenu = selected
+                    elif type(selected) == SaveButton:
+                        menuCoords = (cursorCoords[0]-selected.menu.width, cursorCoords[1]-selected.menu.height)
+                        onMenu = selected.menu
+                    else:
+                        onMenu = None
+
+                    if type(selected) == NodeButton:
                         node = selected.createNode()
                         nodes.append(node)
                         for inp in node.inputs:
@@ -276,7 +278,8 @@ def main() -> None:
 
         # Moving nodes
         if type(selected) == Node:
-            selected.setOrigin(cursorCoordsRel[0] + selected.x, cursorCoordsRel[1] + selected.y)
+            selected.x += cursorCoordsRel[0]
+            selected.y += cursorCoordsRel[1]
 
         # Check if hovering over plugs or activated
         for plug in inPlugs + outPlugs:
@@ -293,18 +296,18 @@ def main() -> None:
         # Check lines
         for line in lines:
             # print(line.start, line.end)
-            if type(line.start) in [Plug, InputPlug] and type(line.end) == tuple:
-                line.end = cursorCoords
-            elif type(line.end) in [Plug, InputPlug] and type(line.start) == tuple:
-                line.start = cursorCoords
-            else:
+            if type(line.start) in [Plug, InputPlug] and type(line.end) in [Plug, InputPlug]:
                 line.checkCurrent()
+            elif type(line.start) in [Plug, InputPlug] and type(line.end) == tuple:
+                line.end = cursorCoords
+            elif type(line.end) in [Plug, OutputPlug] and type(line.start) == tuple:
+                line.start = cursorCoords
 
         # Calculate node logic
         for node in nodes:
             node.calcOutput()
 
-        drawObjects(buttons=buttons, inPlugs=inPlugs, outPlugs=outPlugs, nodes=nodes, lines=lines)
+        drawObjects(buttons=buttons, inPlugs=inPlugs, outPlugs=outPlugs, nodes=nodes, lines=lines, onMenu=onMenu, menuCoords=menuCoords)
         clock.tick(500)
         pg.display.update()
     

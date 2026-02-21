@@ -1,5 +1,6 @@
 # Collection of objects WIP
 from modules.constants import *
+from fonts.fontManager import *
 
 class Plug:
     def __init__(self, colour:tuple[int,int,int]=(0,0,0), radius:float=0.0, x:float=0.0, y:float=0.0) -> None:
@@ -98,14 +99,11 @@ class Wire:
         return False
 
 class Block:
-    def __init__(self, colour:tuple[int,int,int]=(0,0,0), width:float=0.0, height:float=0.0, x:float=0.0, y:float=0.0):
+    def __init__(self, text:str="", colour:tuple[int,int,int]=(0,0,0), width:float=0.0, height:float=0.0, x:float=0.0, y:float=0.0):
+        self.text = text
         self.colour = colour
         self.width = width
         self.height = height
-        self.x = x
-        self.y = y
-    
-    def setOrigin(self, x:float=0.0, y:float=0.0) -> None:
         self.x = x
         self.y = y
     
@@ -118,32 +116,53 @@ class Block:
         self.y = y
     
     def checkCursor(self, cursorCoords:tuple[int,int]=(0,0)) -> bool:
-        cursorX, cursorY = cursorCoords
+        if not self.x and not self.y:
+            return False
+        cursorX, cursorY = cursorCoords    
 
         if cursorX >= self.x and cursorX <= self.x + self.width and cursorY >= self.y and cursorY <= self.y + self.height:
-            # print("cursor inside")
             return True
 
         return False
 
+    def calcBoxCenter(self, textX:float=0.0, textY:float=0.0) -> tuple[float, float]:
+        centerX, centerY = self.x+(self.width//2), self.y+(self.height//2)
+        return centerX-textX/2, centerY-textY/2
+
 class Button(Block):
-    def __init__(self, colour:tuple[int,int,int]=(0,0,0), width:float=0.0, height:float=0.0, x:float=0.0, y:float=0.0, nodeData:list[any, ...]=[]):
-        super().__init__(colour, width, height, x, y)
-        
-        self.name = nodeData[0]
-        self.nodeWidth = worldWidth * float(nodeData[2])
-        self.nodeHeight = worldWidth * float(nodeData[3])
-        self.inputs = nodeData[4]
-        self.outputs = nodeData[5]
-        self.truthTable = nodeData[6]
+    def __init__(self, text:str="", colour:tuple[int,int,int]=(0,0,0), width:float=0.0, height:float=0.0, x:float=0.0, y:float=0.0):
+        super().__init__(text, colour, width, height, x, y)
+
+    def draw(self) -> None:
+        super().draw()
+        if self.text != "":
+            text = p.render(self.text, True, (255, 255, 255))
+            textX, textY = text.get_size()
+            centerX, centerY = self.calcBoxCenter(textX, textY)
+            
+            win.blit(text, (centerX, centerY))
+
+class SaveButton(Button):
+    def __init__(self, text:str="", colour:tuple[int,int,int]=(0,0,0), width:float=0.0, height:float=0.0, x:float=0.0, y:float=0.0, saveMenu=None):
+        super().__init__(text, colour, width, height, x, y)
+        self.menu = saveMenu
+
+class NodeButton(Button):
+    def __init__(self, text:str="", colour:tuple[int,int,int]=(0,0,0), width:float=0.0, height:float=0.0, x:float=0.0, y:float=0.0, data:list[any, ...]=[]):
+        super().__init__(text, colour, width, height, x, y)
+        self.nodeWidth = worldWidth * float(data[2])
+        self.nodeHeight = worldWidth * float(data[3])
+        self.inputs = data[4]
+        self.outputs = data[5]
+        self.truthTable = data[6]
 
     def createNode(self) -> "Node":
-        newNode = Node(self.colour, self.nodeWidth, self.nodeHeight, worldWidth * 0.1, worldHeight * 0.1, self.inputs, self.outputs, self.name, self.truthTable)
+        newNode = Node(self.text, self.colour, self.nodeWidth, self.nodeHeight, worldWidth * 0.1, worldHeight * 0.1, self.inputs, self.outputs, self.truthTable)
         return newNode
 
-class PlugButton(Block):
-    def __init__(self, colour:tuple[int,int,int]=(0,0,0), width:float=0.0, height:float=0.0, x:float=0.0, y:float=0.0, plugType:str=""):
-        super().__init__(colour, width, height, x, y)
+class PlugButton(Button):
+    def __init__(self, text:str="+", colour:tuple[int,int,int]=(0,0,0), width:float=0.0, height:float=0.0, x:float=0.0, y:float=0.0, plugType:str=""):
+        super().__init__(text, colour, width, height, x, y)
         self.plugType = plugType
     
     def createPlug(self, plugs:list[any, ...]=[]) -> "Node":
@@ -176,8 +195,8 @@ class PlugButton(Block):
         return plugs
 
 class Node(Block):
-    def __init__(self, colour:tuple[int,int,int]=(0,0,0), width:float=0.0, height:float=0.0, x:float=0.0, y:float=0.0, inputs:int=0, outputs:int=0, name:str="", truthTable:list[dict, ...]=[]):
-        super().__init__(colour, width, height, x, y)
+    def __init__(self, text:str="", colour:tuple[int,int,int]=(0,0,0), width:float=0.0, height:float=0.0, x:float=0.0, y:float=0.0, inputs:int=0, outputs:int=0, truthTable:list[dict, ...]=[]):
+        super().__init__(text, colour, width, height, x, y)
 
         self.inputs = []
         for i in range(1, inputs+1):
@@ -191,12 +210,18 @@ class Node(Block):
             outPlug = Plug(BLACK, worldWidth * 0.01, self.x + self.width, plugY)
             self.outputs.append(outPlug)
         
-        self.name = name
+        self.text = text
         self.truthTable = truthTable
         # print(self.truthTable)
 
     def draw(self) -> None:
         super().draw()
+        text = p.render(self.text, True, (255, 255, 255))
+        textX, textY = text.get_size()
+        centerX, centerY = self.calcBoxCenter(textX, textY)
+        
+        win.blit(text, (centerX, centerY))
+
         for i, inp in enumerate(self.inputs):
             inp.x = self.x
             inp.y = self.y + self.height / (len(self.inputs)+1) * (i+1)

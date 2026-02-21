@@ -36,3 +36,5 @@ Once done, exit the virtual environment using *deactivate*
 - Activating an Output plug, then deleting the node connected to the Output plug will not deactivate the Output plug
 - There is no detection system for multiple nodes plugging into a single Output plug (Conflicts)
 - Can't delete wires; Have to delete the nodes connected to it instead
+- When resizing, newly instantiated objects will have different sizes than objects prior to resizing
+- Right click doesn't remove menu screens
