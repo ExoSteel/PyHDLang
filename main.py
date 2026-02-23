@@ -5,55 +5,48 @@ from modules.finder import jsonReader, getLogicDetails
 import modules.objects
 import modules.menus
 import modules.save
-import modules.constants
+import modules.constants  # Why did bro put a pg.display.Info() somewhere after a
 
 
 pg.init()
 pg.display.set_caption("Pygame Hardware Description Language")
-info = pg.display.Info()
-worldWidth = info.current_w // 2
-worldHeight = info.current_h // 2
-window = pg.display.set_mode((worldWidth, worldHeight), pg.RESIZABLE)
-
 
 def drawBackground() -> None:
     # print(WIDTH, HEIGHT)
-    window.fill(modules.constants.BACKGROUND)
-    pg.draw.rect(window, modules.constants.BACKGROUND2, ((0, worldHeight - worldHeight * 0.18), (worldWidth, worldHeight)))
-    pg.draw.rect(window, modules.constants.BACKGROUND3, ((0, 0), (worldWidth * 0.1, worldHeight - worldHeight * 0.18)))
-    pg.draw.rect(window, modules.constants.BACKGROUND3, ((worldWidth * 0.9, 0), (worldWidth, worldHeight - worldHeight * 0.18)))
+    modules.constants.win.fill(modules.constants.BACKGROUND)
+    pg.draw.rect(modules.constants.win, modules.constants.BACKGROUND2, ((0, worldHeight - worldHeight * 0.18), (worldWidth, worldHeight)))
+    pg.draw.rect(modules.constants.win, modules.constants.BACKGROUND3, ((0, 0), (worldWidth * 0.1, worldHeight - worldHeight * 0.18)))
+    pg.draw.rect(modules.constants.win, modules.constants.BACKGROUND3, ((worldWidth * 0.9, 0), (worldWidth, worldHeight - worldHeight * 0.18)))
 
-
-def drawObjects(buttons: list[any, ...] = [], inPlugs: list[any, ...] = [], outPlugs: list[any, ...] = [], nodes: list[any, ...] = [], lines: list[any, ...] = [], onMenu: any = None, menuCoords: tuple[int, int] = (0, 0)) -> None:
+def drawObjects(buttons:list[any, ...]=[], inPlugs:list[any, ...]=[], outPlugs:list[any, ...]=[], nodes:list[any, ...]=[], lines:list[any, ...]=[], onMenu:any=None, menuCoords:tuple[int,int]=(0,0)) -> None:
     for button in buttons:
-        button.draw(window)
+        button.draw()
 
     for inPlug in inPlugs:
-        inPlug.draw(window)
+        inPlug.draw()
 
     for outPlug in outPlugs:
-        outPlug.draw(window)
+        outPlug.draw()
 
     for node in nodes:
-        node.draw(window)
+        node.draw()
 
     for line in lines:
-        line.draw(window)
+        line.draw()
 
     if onMenu:
-        onMenu.draw(window, menuCoords[0], menuCoords[1])
+        onMenu.draw(menuCoords[0], menuCoords[1])
 
 
-def detectInput() -> tuple[tuple[any, ...], tuple[any, ...], tuple[any, ...], tuple[any, ...]]:
+def detectInput() -> tuple[tuple[any, ...],tuple[any, ...],tuple[any, ...],tuple[any, ...]]:
     keyState = pg.key.get_pressed()
-    cursorClicks = pg.mouse.get_pressed(num_buttons=3)  # Left, Center, Right
-    cursorCoords = pg.mouse.get_pos()  # (x, y)
-    cursorCoordsRel = pg.mouse.get_rel()  # (x, y)
+    cursorClicks = pg.mouse.get_pressed(num_buttons=3) # Left, Center, Right
+    cursorCoords = pg.mouse.get_pos() # (x, y)
+    cursorCoordsRel = pg.mouse.get_rel() # (x, y)
 
     return keyState, cursorClicks, cursorCoords, cursorCoordsRel
 
-
-def findSelected(cursorCoords: tuple[int, int] = (0, 0), buttons: list[any, ...] = [], nodes: list[any, ...] = [], inPlugs: list[any, ...] = [], outPlugs: list[any, ...] = [], lines: list[any, ...] = [], menus: list[any, ...] = []) -> any:
+def findSelected(cursorCoords:tuple[int, int]=(0,0), buttons:list[any, ...]=[], nodes:list[any, ...]=[], inPlugs:list[any, ...]=[], outPlugs:list[any, ...]=[], lines:list[any, ...]=[], menus:list[any, ...]=[]) -> any:
     # Slightly Complex Checks
     for node in nodes:
         for plug in node.inputs + node.outputs:
@@ -70,9 +63,9 @@ def findSelected(cursorCoords: tuple[int, int] = (0, 0), buttons: list[any, ...]
                             return colourBox
                 elif widget.checkCursor(cursorCoords, menu.width, menu.height):
                     return widget
-
+            
             return menu
-
+    
     objects = buttons + nodes + inPlugs + outPlugs + lines
 
     # Simple Checks
@@ -83,7 +76,6 @@ def findSelected(cursorCoords: tuple[int, int] = (0, 0), buttons: list[any, ...]
         return obj
 
     return None
-
 
 def isValidWiring(selectedPlug: [modules.objects.Plug, modules.objects.InputPlug, modules.objects.OutputPlug] = None, newWire: modules.objects.Wire = None) -> modules.objects.Wire:
     if type(selectedPlug) == modules.objects.InputPlug:
@@ -98,8 +90,7 @@ def isValidWiring(selectedPlug: [modules.objects.Plug, modules.objects.InputPlug
 
     return newWire
 
-
-def deleteConnections(lines: list[any, ...] = [], inPlugs: list[any, ...] = [], outPlugs: list[any, ...] = [], selected: any = None) -> None:
+def deleteConnections(lines:list[any, ...]=[], inPlugs:list[any, ...]=[], outPlugs:list[any, ...]=[], selected:any=None) -> None:
     toDelete = []
     for line in lines:
         # print(line.start, selected.inputs, line.end, selected.outputs)
@@ -122,12 +113,10 @@ def deleteConnections(lines: list[any, ...] = [], inPlugs: list[any, ...] = [], 
 
     [outPlugs.pop(outPlugs.index(i)) for i in toDelete]
 
-
 def cleanReset():
     pass
 
-
-def initialise(data=list[any, ...]) -> tuple[list, list, list, list, list]:
+def initialise(data=list[any, ...]) -> tuple[list,list,list,list,list]:
     nodes, inPlugs, outPlugs, buttons, lines, menus = [], [], [], [], [], []
     # node1 = modules.objects.Node(modules.constants.RED, WIDTH * 0.1, WIDTH * 0.075, WIDTH * 0.25, HEIGHT * 0.01, 2, 1, "AND", "")
     # node2 = modules.objects.Node(BLUE, WIDTH * 0.1, WIDTH * 0.075, WIDTH * 0.12, HEIGHT * 0.1, 1, 1, "OR", "")
@@ -143,17 +132,17 @@ def initialise(data=list[any, ...]) -> tuple[list, list, list, list, list]:
     outputPlug2 = modules.objects.OutputPlug(modules.constants.BLACK, worldWidth * 0.01, worldWidth * 0.9, worldHeight * 0.66)
     outPlugs.append(outputPlug)
 
-    saveMenu = modules.menus.SaveMenu(worldWidth, worldHeight, "Save", modules.constants.WHITE, worldWidth * 0.4, worldHeight * 0.7)
+    saveMenu = modules.menus.SaveMenu("Save", modules.constants.WHITE, worldWidth * 0.4, worldHeight * 0.7)
     menus.insert(0, saveMenu)
 
     for ind, logic in enumerate(data):
         colour = tuple([int(i) for i in logic[1].split(",")])
-        button = modules.objects.NodeButton(worldWidth, text=logic[0], colour=colour, width=(worldWidth * 0.06), height=(worldWidth * 0.04), x=(worldWidth * 0.01 + worldWidth * 0.07 * (ind)), y=(worldHeight * 0.845), data=logic)
+        button = modules.objects.NodeButton(text=logic[0], colour=colour, width=(worldWidth * 0.06), height=(worldWidth * 0.04), x=(worldWidth * 0.01 + worldWidth * 0.07 * (ind)), y=(worldHeight * 0.845), data=logic)
         buttons.insert(0, button)
     buttonInput = modules.objects.PlugButton("+", (100, 100, 100), worldWidth * 0.05, worldWidth * 0.05, worldWidth * 0.02, worldHeight * 0.01, "input")
     buttonOutput = modules.objects.PlugButton("+", (100, 100, 100), worldWidth * 0.05, worldWidth * 0.05, worldWidth * 0.92, worldHeight * 0.01, "output")
     buttonSave = modules.objects.SaveButton("Save", modules.constants.RED, worldWidth * 0.10, worldHeight * 0.10, worldWidth * 0.85, worldHeight * 0.85, saveMenu)
-
+    
     buttons.insert(0, buttonInput)
     buttons.insert(0, buttonOutput)
     buttons.insert(0, buttonSave)
@@ -166,8 +155,7 @@ def initialise(data=list[any, ...]) -> tuple[list, list, list, list, list]:
 
     return nodes, inPlugs, outPlugs, buttons, lines, menus
 
-
-def resizeGUI(info: any, objects: list[any, ...]) -> None:
+def resizeGUI(info:any, objects:list[any, ...]) -> None:
     global worldWidth, worldHeight
     percentDiffWidth = info.current_w / worldWidth
     percentDiffHeight = info.current_h / worldHeight
@@ -178,21 +166,20 @@ def resizeGUI(info: any, objects: list[any, ...]) -> None:
         obj.x *= percentDiffWidth
         obj.y *= percentDiffHeight
         if type(obj) == modules.objects.InputPlug:
-            obj.radius *= (percentDiffWidth + percentDiffHeight) / 2
-            obj.switchRadius *= (percentDiffWidth + percentDiffHeight) / 2
+            obj.radius *= ((percentDiffWidth + percentDiffHeight) / 2)
+            obj.switchRadius *= ((percentDiffWidth + percentDiffHeight) / 2)
             obj.switchX *= percentDiffWidth
             obj.switchY *= percentDiffHeight
         elif type(obj) == modules.objects.OutputPlug:
-            obj.radius *= (percentDiffWidth + percentDiffHeight) / 2
-            obj.lampRadius *= (percentDiffWidth + percentDiffHeight) / 2
+            obj.radius *= ((percentDiffWidth + percentDiffHeight) / 2)
+            obj.lampRadius *= ((percentDiffWidth + percentDiffHeight) / 2)
             obj.lampX *= percentDiffWidth
             obj.lampY *= percentDiffHeight
         elif type(obj) in [modules.objects.Plug, modules.objects.InputPlug, modules.objects.OutputPlug]:
-            obj.radius *= (percentDiffWidth + percentDiffHeight) / 2
+            obj.radius *= ((percentDiffWidth + percentDiffHeight) / 2)
         else:
             obj.width *= percentDiffWidth
             obj.height *= percentDiffHeight
-
 
 def main() -> None:
     global worldWidth, worldHeight
@@ -203,7 +190,7 @@ def main() -> None:
     newWire = None
     running = True
     onMenu = None
-    menuCoords = (0, 0)
+    menuCoords = (0,0)
     isTyping = None
     userInput = ""
 
@@ -211,19 +198,19 @@ def main() -> None:
     collectionJSON = jsonReader("./collection.json")
     for logic in collectionJSON["logics"]:
         data.append(getLogicDetails(logic))
-
+        
     nodes, inPlugs, outPlugs, buttons, lines, menus = initialise(data)
 
     while running:
         info = pg.display.Info()
-
+        
         # print(info, info.current_w)
         if info.current_w != worldWidth or info.current_h != worldHeight:
             objects = nodes + inPlugs + outPlugs + buttons
             resizeGUI(info, objects)
         drawBackground()
         keyState, cursorClicks, cursorCoords, cursorCoordsRel = detectInput()
-
+        
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 running = False
@@ -237,7 +224,7 @@ def main() -> None:
                     if event.key == pg.K_BACKSPACE:
                         userInput = userInput[:-1]
                         isTyping.value = isTyping.value[:-1]
-                    else:
+                    else:    
                         userInput += event.unicode
                         isTyping.value += event.unicode
 
@@ -263,14 +250,14 @@ def main() -> None:
                         onMenu = None
 
                     if type(selected) == modules.objects.NodeButton:
-                        node = selected.createNode(worldWidth, worldHeight)
+                        node = selected.createNode()
                         nodes.append(node)
                         for inp in node.inputs:
                             inPlugs.append(inp)
                         for out in node.outputs:
                             outPlugs.append(out)
                     elif type(selected) == modules.objects.PlugButton:
-                        selected.createPlug(worldWidth, worldHeight, inPlugs if selected.plugType == "input" else outPlugs)
+                        selected.createPlug(inPlugs if selected.plugType == "input" else outPlugs)
                     elif type(selected) == modules.objects.InputPlug:
                         if selected.checkCursor(cursorCoords) == 2:
                             selected.isActivated = False if selected.isActivated else True

@@ -14,14 +14,14 @@
 #     worldWidth, worldHeight = 1000, 1000
 #     running = True
 #     userText = ""
-#     window = pg.display.set_mode((worldWidth,worldHeight))
+#     win = pg.display.set_mode((worldWidth,worldHeight))
 #     onMenu = False
 #     saveMenu = SaveMenu("Save", WHITE, 200, 200, [])
 #     button = SaveButton("Save", RED, 150, 150, 800, 800, saveMenu)
 #     menuX, menuY = None, None
 
 #     while running:
-#         window.fill(BLACK)
+#         win.fill(BLACK)
 #         button.draw()
 #         cursorCoords = pg.mouse.get_pos()
 #         cursorCoordsRel = pg.mouse.get_rel()
