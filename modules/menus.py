@@ -1,8 +1,7 @@
 import pygame as pg
-from pygame.locals import *
-from fonts.fontManager import *
-from modules.constants import *
-from modules.objects import *
+import fonts.fontManager
+import modules.constants
+import modules.objects
 
 class Widget:
     def __init__(self, text, colour, width, height, relX, relY):
@@ -42,14 +41,14 @@ class InputBox(Widget):
 
         pg.draw.rect(win, self.colour, (self.x + menuWidth * self.relX, self.y + menuHeight * self.relY, self.width, self.height))
 
-        text = p.render(self.text, True, (255, 255, 255))
+        text = fonts.fontManager.p.render(self.text, True, (255, 255, 255))
         textX, textY = text.get_size()
 
         centerX, centerY = self.textJustifyLeft(menuWidth, menuHeight, textX, textY)
         
         win.blit(text, (centerX, centerY))
 
-        inpText = p.render(self.value, True, (255, 255, 255))
+        inpText = fonts.fontManager.p.render(self.value, True, (255, 255, 255))
         inpTextX, inpTextY = inpText.get_size()
 
         centerX, centerY = self.x + menuWidth * self.relX + (self.width - inpTextX) / 2, self.y + menuHeight * self.relY + inpTextY/2
@@ -76,7 +75,7 @@ class ColourPicker(Widget):
     def initInputBoxes(self, numBoxes):
         boxes = []
         for box in range(numBoxes):
-            boxes.append(InputBox("", BACKGROUND3, self.width / 3, self.height, self.relX, self.relY))
+            boxes.append(InputBox("", modules.constants.BACKGROUND3, self.width / 3, self.height, self.relX, self.relY))
         
         return boxes
     
@@ -96,7 +95,7 @@ class ColourPicker(Widget):
             box.draw(menuX + (box.width + 15) * i, menuY, menuWidth, menuHeight)
             # pg.draw.rect(win, colour, (self.x + (menuWidth * self.relX) * (i+1), self.y + menuHeight * self.relY, self.width/3 - 15, self.height))
 
-        text = p.render(self.text, True, (255, 255, 255))
+        text = fonts.fontManager.p.render(self.text, True, (255, 255, 255))
         textX, textY = text.get_size()
 
         centerX, centerY = self.textJustifyLeft(menuWidth, menuHeight, textX, textY)
@@ -121,14 +120,14 @@ class SaveButtonWidget(Widget):
 
         pg.draw.rect(win, self.colour, (self.x + menuWidth * self.relX, self.y + menuHeight * self.relY, self.width, self.height))
 
-        text = p.render(self.text, True, (255, 255, 255))
+        text = fonts.fontManager.p.render(self.text, True, (255, 255, 255))
         textX, textY = text.get_size()
 
         centerX, centerY = self.x + menuWidth * self.relX + (self.width - textX) / 2, self.y + menuHeight * self.relY + textY/2
         
         win.blit(text, (centerX, centerY))
 
-class SaveMenu(Block):
+class SaveMenu(modules.objects.Block):
     def __init__(self, text:str="", colour:tuple[int,int,int]=(0,0,0), width:float=0.0, height:float=0.0):
         super().__init__(text, colour, width, height, None, None)
         self.isVisible = False
@@ -137,13 +136,13 @@ class SaveMenu(Block):
         self.y = None
     
     def initWidgets(self):
-        nameInput = InputBox("Name", BACKGROUND3, worldWidth*0.2, worldHeight*0.07, 0.12, 0.15)
-        colourInput = ColourPicker("Colour", BACKGROUND3, worldWidth*0.2, worldHeight*0.07, 0.17, 0.28)
-        numInputsInput = InputBox("No. of Inputs", BACKGROUND3, worldWidth*0.06, worldHeight*0.07, 0.34, 0.42)
-        numOutputsInput = InputBox("No. of Outputs", BACKGROUND3, worldWidth*0.05, worldHeight*0.07, 0.36, 0.57)
-        nodeWidthInput = InputBox("Width (px)", BACKGROUND3, worldWidth*0.05, worldHeight*0.07, 0.27, 0.72)
-        nodeHeightInput = InputBox("Height (px)", BACKGROUND3, worldWidth*0.05, worldHeight*0.07, 0.29, 0.87)
-        widgetSave = SaveButtonWidget("Save", GREEN, worldWidth * 0.07, worldHeight * 0.07, 0.8, 0.82)
+        nameInput = InputBox("Name", modules.constants.BACKGROUND3, worldWidth * 0.2, worldHeight * 0.07, 0.12, 0.15)
+        colourInput = ColourPicker("Colour", modules.constants.BACKGROUND3, worldWidth * 0.2, worldHeight * 0.07, 0.17, 0.28)
+        numInputsInput = InputBox("No. of Inputs", modules.constants.BACKGROUND3, worldWidth * 0.06, worldHeight * 0.07, 0.34, 0.42)
+        numOutputsInput = InputBox("No. of Outputs", modules.constants.BACKGROUND3, worldWidth * 0.05, worldHeight * 0.07, 0.36, 0.57)
+        nodeWidthInput = InputBox("Width (px)", modules.constants.BACKGROUND3, worldWidth * 0.05, worldHeight * 0.07, 0.27, 0.72)
+        nodeHeightInput = InputBox("Height (px)", modules.constants.BACKGROUND3, worldWidth * 0.05, worldHeight * 0.07, 0.29, 0.87)
+        widgetSave = SaveButtonWidget("Save", modules.constants.GREEN, worldWidth * 0.07, worldHeight * 0.07, 0.8, 0.82)
         return [nameInput, colourInput, numInputsInput, numOutputsInput, nodeWidthInput, nodeHeightInput, widgetSave]
 
     def draw(self, menuX, menuY):
@@ -151,9 +150,9 @@ class SaveMenu(Block):
             self.x, self.y = None, None
 
         self.x, self.y = menuX, menuY
-        pg.draw.rect(win, BACKGROUND4, (menuX, menuY, self.width, self.height))
+        pg.draw.rect(win, modules.constants.BACKGROUND4, (menuX, menuY, self.width, self.height))
 
-        text = h2.render(self.text, True, (255, 255, 255))
+        text = fonts.fontManger.h2.render(self.text, True, (255, 255, 255))
         textX, textY = text.get_size()
 
         centerX, centerY = self.textJustifyCenter(textX, textY)
@@ -174,12 +173,12 @@ if __name__ == "__main__":
     userText = ""
     win = pg.display.set_mode((worldWidth,worldHeight))
     onMenu = False
-    saveMenu = SaveMenu(WHITE, 100, 100, [])
-    button = SaveButton(RED, 150, 150, 800, 800, saveMenu)
+    saveMenu = SaveMenu(modules.constants.WHITE, 100, 100, [])
+    button = modules.objects.SaveButton(modules.constants.RED, 150, 150, 800, 800, saveMenu)
     menuX, menuY = None, None
 
     while running:
-        win.fill(BLACK)
+        win.fill(modules.constants.BLACK)
         button.draw()
         cursorCoords = pg.mouse.get_pos()
         cursorCoordsRel = pg.mouse.get_rel()
@@ -187,9 +186,9 @@ if __name__ == "__main__":
         keyState = pg.key.get_pressed()
 
         for event in pg.event.get():
-            if event.type == QUIT:
+            if event.type == pg.QUIT:
                 running = False
-            elif event.type == MOUSEBUTTONDOWN:
+            elif event.type == pg.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     if button.checkCursor(cursorCoords) or saveMenu.checkCursor(cursorCoords):
                         onMenu = True
