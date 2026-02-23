@@ -8,7 +8,7 @@
 #   "src": "NAND.csv"
 # }
 
-from modules.menus import *
+# import modules.menus
 
 def checkValidDetails(menu):
     try:
@@ -21,13 +21,13 @@ def checkValidDetails(menu):
                 for colourBox in widget.boxes:
                     temp = int(colourBox.value)
             else:
-                temp = int(widget.value)    
-            
+                temp = int(widget.value)
+
             print(temp)
-        
+
         print("it works")
         return True
-        
+
     except Exception as e:
         print(e)
         return False
@@ -36,14 +36,7 @@ def checkValidDetails(menu):
 def getSaveDetails(menu):
     details = [-1] * 6
 
-    assignDict = {
-        "Name": 0,
-        "Colour": 1,
-        "No. of Inputs": 2,
-        "No. of Outputs": 3,
-        "Width": 4,
-        "Height": 5
-    }
+    assignDict = {"Name": 0, "Colour": 1, "No. of Inputs": 2, "No. of Outputs": 3, "Width": 4, "Height": 5}
 
     widgets = menu.widgets
 
