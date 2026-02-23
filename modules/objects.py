@@ -1,6 +1,7 @@
 # Collection of objects WIP
-from modules.constants import *
-from fonts.fontManager import *
+import pygame as pg
+import modules.constants
+import fonts.fontManager
 
 class Plug:
     def __init__(self, colour:tuple[int,int,int]=(0,0,0), radius:float=0.0, x:float=0.0, y:float=0.0) -> None:
@@ -22,13 +23,13 @@ class Plug:
         return False
 
     def draw(self) -> None:
-        pg.draw.circle(win, self.colour, (self.x, self.y), self.radius)
+        pg.draw.circle(modules.constants.win, self.colour, (self.x, self.y), self.radius)
     
     def checkCurrent(self) -> None:
         if self.isActivated:
-            self.colour = RED
+            self.colour = modules.constants.RED
         else:
-            self.colour = BLACK
+            self.colour = modules.constants.BLACK
 
 class InputPlug(Plug):
     def __init__(self, colour:tuple[int,int,int]=(0,0,0), radius:float=0.0, x:float=0.0, y:float=0.0) -> None:
@@ -36,11 +37,11 @@ class InputPlug(Plug):
         self.switchRadius = self.radius * 2
         self.switchX = self.x * 0.65
         self.switchY = self.y
-        self.switchColour = BLACK
+        self.switchColour = modules.constants.BLACK
 
     def draw(self) -> None:
-        pg.draw.circle(win, self.colour, (self.x, self.y), self.radius)
-        pg.draw.circle(win, self.switchColour, (self.switchX, self.switchY), self.switchRadius)
+        pg.draw.circle(modules.constants.win, self.colour, (self.x, self.y), self.radius)
+        pg.draw.circle(modules.constants.win, self.switchColour, (self.switchX, self.switchY), self.switchRadius)
     
     def checkCursor(self, cursorCoords:tuple[int,int]=(0,0)) -> int:
         cursorX, cursorY = cursorCoords
@@ -60,8 +61,8 @@ class OutputPlug(Plug):
         self.lampY = self.y 
         
     def draw(self) -> None:
-        pg.draw.circle(win, self.colour, (self.x, self.y), self.radius)
-        pg.draw.circle(win, self.colour, (self.lampX, self.lampY), self.lampRadius)
+        pg.draw.circle(modules.constants.win, self.colour, (self.x, self.y), self.radius)
+        pg.draw.circle(modules.constants.win, self.colour, (self.lampX, self.lampY), self.lampRadius)
 
 class Wire:
     def __init__(self, colour:tuple[int,int,int]=(0,0,0), start:Plug | tuple[int,int]=None, end:Plug | tuple[int,int]=None) -> None:
@@ -80,16 +81,16 @@ class Wire:
             endX, endY = self.end.getCoords()
         else:
             endX, endY = self.end[0], self.end[1]
-        pg.draw.line(win, self.colour, (startX, startY), (endX, endY), 4)
+        pg.draw.line(modules.constants.win, self.colour, (startX, startY), (endX, endY), 4)
 
     def checkCurrent(self) -> bool:
         if self.start.isActivated:
-            self.colour = RED
+            self.colour = modules.constants.RED
             self.isActivated = True
             self.end.isActivated = True
             return True
 
-        self.colour = BLACK
+        self.colour = modules.constants.BLACK
         self.isActivated = False
         self.end.isActivated = False
         return False
@@ -108,10 +109,10 @@ class Block:
         self.y = y
     
     def draw(self) -> None:
-        pg.draw.rect(win, self.colour, (self.x, self.y, self.width, self.height))
+        pg.draw.rect(modules.constants.win, self.colour, (self.x, self.y, self.width, self.height))
 
     def moveTo(self, x:float=0.0, y:float=0.0) -> None:
-        pg.draw.rect(win, self.colour, (x, y, self.width, self.height))
+        pg.draw.rect(modules.constants.win, self.colour, (x, y, self.width, self.height))
         self.x = x
         self.y = y
     
@@ -136,91 +137,95 @@ class Button(Block):
     def draw(self) -> None:
         super().draw()
         if self.text != "":
-            text = p.render(self.text, True, (255, 255, 255))
+            text = fonts.fontManager.p.render(self.text, True, (255, 255, 255))
             textX, textY = text.get_size()
             centerX, centerY = self.calcBoxCenter(textX, textY)
-            
-            win.blit(text, (centerX, centerY))
+
+            modules.constants.win.blit(text, (centerX, centerY))
+
 
 class SaveButton(Button):
-    def __init__(self, text:str="", colour:tuple[int,int,int]=(0,0,0), width:float=0.0, height:float=0.0, x:float=0.0, y:float=0.0, saveMenu=None):
+    def __init__(self, text: str = "", colour: tuple[int, int, int] = (0, 0, 0), width: float = 0.0, height: float = 0.0, x: float = 0.0, y: float = 0.0, saveMenu=None):
         super().__init__(text, colour, width, height, x, y)
         self.menu = saveMenu
 
+
 class NodeButton(Button):
-    def __init__(self, text:str="", colour:tuple[int,int,int]=(0,0,0), width:float=0.0, height:float=0.0, x:float=0.0, y:float=0.0, data:list[any, ...]=[]):
+    def __init__(self, text: str = "", colour: tuple[int, int, int] = (0, 0, 0), width: float = 0.0, height: float = 0.0, x: float = 0.0, y: float = 0.0, data: list[any, ...] = []):
         super().__init__(text, colour, width, height, x, y)
-        self.nodeWidth = worldWidth * float(data[2])
-        self.nodeHeight = worldWidth * float(data[3])
+        self.nodeWidth = modules.constants.worldWidth * float(data[2])
+        self.nodeHeight = modules.constants.worldWidth * float(data[3])
         self.inputs = data[4]
         self.outputs = data[5]
         self.truthTable = data[6]
 
     def createNode(self) -> "Node":
-        newNode = Node(self.text, self.colour, self.nodeWidth, self.nodeHeight, worldWidth * 0.1, worldHeight * 0.1, self.inputs, self.outputs, self.truthTable)
+        newNode = Node(self.text, self.colour, self.nodeWidth, self.nodeHeight, modules.constants.worldWidth * 0.1, modules.constants.worldHeight * 0.1, self.inputs, self.outputs, self.truthTable)
         return newNode
 
+
 class PlugButton(Button):
-    def __init__(self, text:str="+", colour:tuple[int,int,int]=(0,0,0), width:float=0.0, height:float=0.0, x:float=0.0, y:float=0.0, plugType:str=""):
+    def __init__(self, text: str = "+", colour: tuple[int, int, int] = (0, 0, 0), width: float = 0.0, height: float = 0.0, x: float = 0.0, y: float = 0.0, plugType: str = ""):
         super().__init__(text, colour, width, height, x, y)
         self.plugType = plugType
-    
-    def createPlug(self, plugs:list[any, ...]=[]) -> "Node":
+
+    def createPlug(self, plugs: list[any, ...] = []) -> "Node":
         colour = self.colour
-        topPadding = worldHeight * 0.08
-        
+        topPadding = modules.constants.worldHeight * 0.08
+
         if self.plugType == "input":
             inPlugs = []
             for plug in plugs:
                 inPlugs.append(plug) if type(plug) == InputPlug else 0
-            spacing = (worldHeight * 0.7) / (len(inPlugs) + 1)
+            spacing = (modules.constants.worldHeight * 0.7) / (len(inPlugs) + 1)
 
             for ind, plug in enumerate(inPlugs):
-                plug.y = topPadding + (spacing * (ind+2))
+                plug.y = topPadding + (spacing * (ind + 2))
                 plug.switchY = plug.y
-            newPlug = InputPlug(colour, worldWidth * 0.01, worldWidth * 0.1, topPadding + spacing)
+            newPlug = InputPlug(colour, modules.constants.worldWidth * 0.01, modules.constants.worldWidth * 0.1, topPadding + spacing)
 
         elif self.plugType == "output":
             outPlugs = []
             for plug in plugs:
                 outPlugs.append(plug) if type(plug) == OutputPlug else 0
-            spacing = (worldHeight * 0.7) / (len(outPlugs) + 1)
+            spacing = (modules.constants.worldHeight * 0.7) / (len(outPlugs) + 1)
 
             for ind, plug in enumerate(outPlugs):
-                plug.y = topPadding + (spacing * (ind+2))
+                plug.y = topPadding + (spacing * (ind + 2))
                 plug.lampY = plug.y
-            newPlug = OutputPlug(colour, worldWidth * 0.01, worldWidth * 0.9, topPadding + spacing)
+            newPlug = OutputPlug(colour, modules.constants.worldWidth * 0.01, modules.constants.worldWidth * 0.9, topPadding + spacing)
 
         plugs.insert(0, newPlug)
         return plugs
 
+
 class Node(Block):
-    def __init__(self, text:str="", colour:tuple[int,int,int]=(0,0,0), width:float=0.0, height:float=0.0, x:float=0.0, y:float=0.0, inputs:int=0, outputs:int=0, truthTable:list[dict, ...]=[]):
+    def __init__(self, text: str = "", colour: tuple[int, int, int] = (0, 0, 0), width: float = 0.0, height: float = 0.0, x: float = 0.0, y: float = 0.0, inputs: int = 0, outputs: int = 0, truthTable: list[dict, ...] = []):
         super().__init__(text, colour, width, height, x, y)
 
         self.inputs = []
-        for i in range(1, inputs+1):
-            plugY = self.y + self.height / (inputs+1) * i
-            inPlug = Plug(BLACK, worldWidth * 0.01, self.x, plugY)
+        for i in range(1, inputs + 1):
+            plugY = self.y + self.height / (inputs + 1) * i
+            inPlug = Plug(modules.constants.BLACK, modules.constants.worldWidth * 0.01, self.x, plugY)
             self.inputs.append(inPlug)
 
         self.outputs = []
-        for o in range(1, outputs+1):
-            plugY = self.y + self.height / (outputs+1) * o
-            outPlug = Plug(BLACK, worldWidth * 0.01, self.x + self.width, plugY)
+        for o in range(1, outputs + 1):
+            plugY = self.y + self.height / (outputs + 1) * o
+            outPlug = Plug(modules.constants.BLACK, modules.constants.worldWidth * 0.01, self.x + self.width, plugY)
             self.outputs.append(outPlug)
-        
+
         self.text = text
         self.truthTable = truthTable
         # print(self.truthTable)
 
     def draw(self) -> None:
         super().draw()
-        text = p.render(self.text, True, (255, 255, 255))
+        text = fonts.fontManager.p.render(self.text, True, (255, 255, 255))
         textX, textY = text.get_size()
         centerX, centerY = self.calcBoxCenter(textX, textY)
-        
-        win.blit(text, (centerX, centerY))
+
+        modules.constants.win.blit(text, (centerX, centerY))
 
         for i, inp in enumerate(self.inputs):
             inp.x = self.x
@@ -235,15 +240,15 @@ class Node(Block):
     def checkCursorOnPlug(self, cursorCoords:tuple[int,int]=(0,0)) -> None:
         for inp in self.inputs:
             if inp.checkCursor(cursorCoords):
-                inp.colour = GREEN
+                inp.colour = modules.constants.GREEN
             else:
-                inp.colour = BLACK
+                inp.colour = modules.constants.BLACK
             
         for out in self.outputs:
             if out.checkCursor(cursorCoords):
-                out.colour = GREEN
+                out.colour = modules.constants.GREEN
             else:
-                out.colour = BLACK
+                out.colour = modules.constants.BLACK
 
     def calcOutput(self) -> None:
         inputs = []
@@ -253,7 +258,7 @@ class Node(Block):
             binaryOut = ""
 
             for key, value in proposition.items():
-                if key in ALPHABET:
+                if key in modules.constants.ALPHABET:
                     binaryInp += value
                 if "OUT" in key:
                     binaryOut += value
