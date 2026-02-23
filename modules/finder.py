@@ -1,6 +1,4 @@
-import csv
-import json
-# import os
+import os, csv, json
 
 def jsonReader(path):
     with open(path, "r") as infile:
