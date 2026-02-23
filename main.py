@@ -6,6 +6,7 @@ from modules.objects import *
 from modules.finder import jsonReader, getLogicDetails
 from modules.constants import *
 from modules.menus import *
+from modules.save import *
 
 pg.init()
 pg.display.set_caption("Pygame Hardware Description Language")
@@ -45,19 +46,34 @@ def detectInput() -> tuple[tuple[any, ...],tuple[any, ...],tuple[any, ...],tuple
     return keyState, cursorClicks, cursorCoords, cursorCoordsRel
 
 def findSelected(cursorCoords:tuple[int, int]=(0,0), buttons:list[any, ...]=[], nodes:list[any, ...]=[], inPlugs:list[any, ...]=[], outPlugs:list[any, ...]=[], lines:list[any, ...]=[], menus:list[any, ...]=[]) -> any:
-    objects = buttons + nodes + inPlugs + outPlugs + lines + menus
+    # Slightly Complex Checks
+    for node in nodes:
+        for plug in node.inputs + node.outputs:
+            if plug.checkCursor(cursorCoords):
+                return plug
 
+    for menu in menus:
+        if menu.checkCursor(cursorCoords):
+            for widget in menu.widgets:
+                if type(widget) == ColourPicker:
+                    for colourBox in widget.boxes:
+                        # print(colourBox.checkCursor(cursorCoords, menu.width, menu.height))
+                        if colourBox.checkCursor(cursorCoords, menu.width, menu.height):
+                            return colourBox
+                elif widget.checkCursor(cursorCoords, menu.width, menu.height):
+                    return widget
+            
+            return menu
+    
+    objects = buttons + nodes + inPlugs + outPlugs + lines
+
+    # Simple Checks
     for obj in objects:
         if not obj.checkCursor(cursorCoords):
             continue
 
-        if type(obj) == Node:
-            for plug in obj.inputs + obj.outputs:
-                if plug.checkCursor(cursorCoords):
-                    return plug
-
         return obj
-    
+
     return None
 
 def isValidWiring(selectedPlug:[Plug,InputPlug,OutputPlug]=None, newWire:Wire=None) -> Wire:
@@ -95,6 +111,9 @@ def deleteConnections(lines:list[any, ...]=[], inPlugs:list[any, ...]=[], outPlu
             toDelete.append(outPlug)
 
     [outPlugs.pop(outPlugs.index(i)) for i in toDelete]
+
+def cleanReset():
+    pass
 
 def initialise(data=list[any, ...]) -> tuple[list,list,list,list,list]:
     nodes, inPlugs, outPlugs, buttons, lines, menus = [], [], [], [], [], []
@@ -171,6 +190,8 @@ def main() -> None:
     running = True
     onMenu = None
     menuCoords = (0,0)
+    isTyping = None
+    userInput = ""
 
     data = []
     collectionJSON = jsonReader("./collection.json")
@@ -192,6 +213,19 @@ def main() -> None:
         for event in pg.event.get():
             if event.type == QUIT:
                 running = False
+            elif event.type == KEYDOWN:
+                print("hay", cursorCoords, cursorClicks, cursorCoordsRel, f"{clock.get_fps():.0f}") if event.key == K_w else None
+                if event.key == K_ESCAPE:
+                    print("exit")
+                    running = False
+                elif isTyping:
+                    # print(event.unicode)
+                    if event.key == K_BACKSPACE:
+                        userInput = userInput[:-1]
+                        isTyping.value = isTyping.value[:-1]
+                    else:    
+                        userInput += event.unicode
+                        isTyping.value += event.unicode
 
             elif event.type == MOUSEBUTTONDOWN:
                 # Find Selected
@@ -202,10 +236,16 @@ def main() -> None:
                 if event.button == 1:
                     if type(selected) == SaveMenu:
                         onMenu = selected
+                    elif isinstance(selected, Widget):
+                        pass
                     elif type(selected) == SaveButton:
                         menuCoords = (cursorCoords[0]-selected.menu.width, cursorCoords[1]-selected.menu.height)
                         onMenu = selected.menu
                     else:
+                        if type(prevSelected) == SaveMenu:
+                            prevSelected.x = None
+                            prevSelected.y = None
+
                         onMenu = None
 
                     if type(selected) == NodeButton:
@@ -237,6 +277,18 @@ def main() -> None:
                         newWire = Wire(BLACK, selected, cursorCoords)
                         lines.append(newWire)
                         isWiring = True
+                    elif type(selected) == InputBox:
+                        userInput = selected.value
+                        isTyping = selected
+                        # print(userInput)
+                    elif type(selected) == SaveButtonWidget:
+                        newButton = saveLogic(nodes, inPlugs, outPlugs, lines, onMenu)
+                        if newButton != None:
+                            cleanReset(buttons, nodes, inPlugs, outPlugs, lines, menus)
+                    else:
+                        isTyping = None
+                        isWiring = False
+
                 # Actions (Middle Click)
                 elif event.button == 2:
                     # dk what to do with this WIP
@@ -270,12 +322,6 @@ def main() -> None:
         
                 selected = None
 
-        if keyState[pg.K_ESCAPE]:
-            print("exit")
-            running = False
-        if keyState[pg.K_w]: #debug
-            print("hay", cursorCoords, cursorClicks, cursorCoordsRel, f"{clock.get_fps():.0f}")
-
         # Moving nodes
         if type(selected) == Node:
             selected.x += cursorCoordsRel[0]
@@ -296,7 +342,7 @@ def main() -> None:
         # Check lines
         for line in lines:
             # print(line.start, line.end)
-            if type(line.start) in [Plug, InputPlug] and type(line.end) in [Plug, InputPlug]:
+            if type(line.start) in [Plug, InputPlug] and type(line.end) in [Plug, OutputPlug]:
                 line.checkCurrent()
             elif type(line.start) in [Plug, InputPlug] and type(line.end) == tuple:
                 line.end = cursorCoords

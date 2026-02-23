@@ -119,7 +119,7 @@ class Block:
         if not self.x and not self.y:
             return False
         cursorX, cursorY = cursorCoords    
-
+        # print(cursorX >= self.x, cursorX <= self.x + self.width, cursorY >= self.y, cursorY <= self.y + self.height)
         if cursorX >= self.x and cursorX <= self.x + self.width and cursorY >= self.y and cursorY <= self.y + self.height:
             return True
 
